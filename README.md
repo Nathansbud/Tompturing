@@ -1,4 +1,4 @@
-# Tomputuring
+# Tompturing
 
 Implementation of [Image Quilting for Texture Synthesis and Transfer](https://people.eecs.berkeley.edu/~efros/research/quilting/quilting.pdf) (Efros & Freeman, 2001) for CSCI 1430
 
