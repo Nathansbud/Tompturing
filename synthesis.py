@@ -1,7 +1,7 @@
 from skimage.io import imread
 import numpy as np
 
-def quilt(block_size: int, texture_path: str):
+def quilt(block_size: int, texture_path: str, scale: int):
     texture = imread(texture_path)
     th, tw, tc = texture.shape
 
@@ -16,7 +16,7 @@ def quilt(block_size: int, texture_path: str):
 
     return texture
 
-def quilt_and_transfer(block_size: int, texture_path: str, transfer_path: str):
+def quilt_and_transfer(block_size: int, texture_path: str, transfer_path: str, scale: int):
     quilted = quilt(block_size, texture_path)
     transfer = imread(transfer_path)
     print(transfer.shape)
