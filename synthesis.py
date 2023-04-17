@@ -57,13 +57,19 @@ def quilt(block_size: int, texture_path: str, scale: float):
     overlap = math.ceil(block_size / 6) # The paper said the overlap was 1/6th of the block size
     # Going through the image to be synthesized in raster scan order
     for row in range(block_size - overlap, outh, block_size - overlap):
+        remainingY = outh - row
         for col in range(block_size - overlap, outw, block_size - overlap):
-            remainingY = outh - row
+            # remainingY = outh - row
             remainingX = outw - col
             img_segment = quilted_img[row: row + max(block_size, remainingY), col: col + max(block_size, remainingX)]
             selected_block = find_good_block(img_segment, texture_blocks)
 
             # TODO: min_err_boundary_cut (seamcarve) and then mould selected_block based on that seam and place into quilted_img
+
+            if remainingX <= block_size:
+                break # make sure to break if we need to fill a smaller-than-block sized portion at the end
+        if remainingY <= block_size:
+            break # make sure to break if we need to fill a smaller-than-block sized portion at the end
 
     return texture
 
