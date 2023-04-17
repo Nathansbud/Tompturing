@@ -10,12 +10,20 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--transfer", default=None, help="Image to transfer texture to")
 
     parser.add_argument("-b", "--block_size", metavar="n", nargs=1, default=16, type=int, help="Block size (n x n)")
-    parser.add_argument("-s", "--scale", default=2, help="Scaling factor to apply while quilting")
+    parser.add_argument("-s", "--scale", default=2.0, help="Scaling factor to apply while quilting")
 
     # we might want user parameters of error and error tolerance
     
     args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
     texture, transfer = args.texture, args.transfer
+    
+    scale = args.scale
+    if scale:
+        try:
+            scale = float(scale)
+        except ValueError as e:
+            print("Provided scale must be a floating point value")
+            exit(1)
     
     if texture and transfer:
         if os.path.isfile(texture) and os.path.isfile(transfer):
