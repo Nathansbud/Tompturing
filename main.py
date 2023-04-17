@@ -2,7 +2,7 @@ import argparse
 import os
 import sys
 
-from synthesis import quilt
+from synthesis import quilt, quilt_and_transfer
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=f"Tompturing: Quilting for Texture Synthesis & Transfer")
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     
     if texture and transfer:
         if os.path.isfile(texture) and os.path.isfile(transfer):
-            pass
+            quilt_and_transfer(args.block_size[0], texture, transfer)
         else:
             print("Provided texture and transfer images must be valid filepaths!")
     elif texture:
