@@ -1,7 +1,8 @@
-from skimage.io import imread
+from skimage.io import imread, imshow
 import numpy as np
 from typing import List, Tuple
 import math
+import matplotlib.pyplot as plt
 
 def get_texture_blocks(texture: np.ndarray, block_size: int) -> List[np.ndarray]:
     """Returns a list of blocks (of size block_size) from the input texture"""
@@ -66,7 +67,8 @@ def min_err_boundary_cut(overlap_img: np.ndarray) -> np.ndarray:
             min_idx = min_idx + np.argmin(check_vals)
             row_mask = [1 for _ in range(min_idx)] + [0 for _ in range(width - min_idx)]
             mask[i,:] = np.array(row_mask)
-    return mask.astype(np.float64)
+    print(f"mask shape: {mask.shape}")
+    return mask.astype(np.uint8)
 
 
 
@@ -114,7 +116,8 @@ def quilt(block_size: int, texture_path: str, scale: float):
                 # block to the left of the path becomes 0:
                 flipped_mask = mask + (mask != 1) - (mask == 1)
                 ragged_block = np.copy(selected_block)
-                ragged_block[:,:overlap] *= flipped_mask
+                print(f"ragged_block type: {ragged_block.dtype}")
+                ragged_block[:,:overlap] *= flipped_mask# .astype(np.float64)
                 img_segment += ragged_block
 
                 # pass copy into min_err_boundary_cut
@@ -129,25 +132,26 @@ def quilt(block_size: int, texture_path: str, scale: float):
                 # block above path becomes 0:
                 flipped_mask = mask + (mask != 1) - (mask == 1)
                 ragged_block = np.copy(selected_block)
-                ragged_block[:overlap,:] *= flipped_mask
+                ragged_block[:overlap,:] *= flipped_mask# .astype(np.float64)
                 img_segment += ragged_block
             else: # overlap on top and left
                 overlap_error_left = overlap_error[:, :overlap]
                 mask_left = min_err_boundary_cut(overlap_error_left)
                 mask_left = np.repeat(mask_left[:,:,np.newaxis], 3, axis=2)
-                overlap_error_top = overlap_error[:, :overlap]
+                overlap_error_top = overlap_error[:overlap, :]
                 mask_top = min_err_boundary_cut(overlap_error_top.T).T
                 mask_top = np.repeat(mask_top[:,:,np.newaxis], 3, axis=2)
                 # previously empty (-100) image segment becomes 0
                 img_segment[overlap:, overlap:] = 0
                 # apply masks to img_segment
                 img_segment[:,:overlap] *= mask_left 
+                print(mask_top.shape)
                 img_segment[:overlap, :] *= mask_top
                 flipped_mask_left = mask_left + (mask_left != 1) - (mask_left == 1)
                 flipped_mask_top = mask_top + (mask_top != 1) - (mask_top == 1) 
                 ragged_block = np.copy(selected_block)
-                ragged_block[:,:overlap] *= flipped_mask_left
-                ragged_block[:overlap,:] *= flipped_mask_top 
+                ragged_block[:,:overlap] *= flipped_mask_left# .astype(np.float64)
+                ragged_block[:overlap,:] *= flipped_mask_top# .astype(np.float64)
                 img_segment += ragged_block
 
 
@@ -155,8 +159,10 @@ def quilt(block_size: int, texture_path: str, scale: float):
                 break # make sure to break if we need to fill a smaller-than-block sized portion at the end
         if remainingY <= block_size:
             break # make sure to break if we need to fill a smaller-than-block sized portion at the end
-
-    return texture
+    
+    io.imshow(quilted_img)
+    plt.show()
+    return quilted_img
 
 def quilt_and_transfer(block_size: int, texture_path: str, transfer_path: str, scale: float):
     quilted = quilt(block_size, texture_path)
