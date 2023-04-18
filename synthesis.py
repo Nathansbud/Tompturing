@@ -18,7 +18,6 @@ def get_random_block(blocks: List[np.ndarray]) -> np.ndarray:
 def find_good_block(img_segment: np.ndarray, blocks: List[np.ndarray]) -> Tuple[np.ndarray, np.ndarray]:
     """Returns a random block from the input texture which fits the image segment and satisfies the overlap constraints"""
     h, w, c = img_segment.shape
-    print(f"img_segment shape: {img_segment.shape}")
     downscaled_blocks = [np.copy(block)[:h, :w, :c] for block in blocks] # Scale down blocks to img_segment size
     l2_norms = []
     for block in downscaled_blocks:
@@ -67,7 +66,6 @@ def min_err_boundary_cut(overlap_img: np.ndarray) -> np.ndarray:
             min_idx = min_idx + np.argmin(check_vals)
             row_mask = [1 for _ in range(min_idx)] + [0 for _ in range(width - min_idx)]
             mask[i,:] = np.array(row_mask)
-    print(f"mask shape: {mask.shape}")
     return mask.astype(np.uint8)
 
 
@@ -96,6 +94,7 @@ def quilt(block_size: int, texture_path: str, scale: float):
     # Going through the image to be synthesized in raster scan order
     for row in range(0, outh, block_size - overlap):
         remainingY = outh - row
+        print(row)
         for col in range(0, outw, block_size - overlap):
             if row == 0 and col == 0:
                 continue
@@ -116,7 +115,6 @@ def quilt(block_size: int, texture_path: str, scale: float):
                 # block to the left of the path becomes 0:
                 flipped_mask = mask + (mask != 1) - (mask == 1)
                 ragged_block = np.copy(selected_block)
-                print(f"ragged_block type: {ragged_block.dtype}")
                 ragged_block[:,:overlap] *= flipped_mask# .astype(np.float64)
                 img_segment += ragged_block
 
@@ -145,7 +143,6 @@ def quilt(block_size: int, texture_path: str, scale: float):
                 img_segment[overlap:, overlap:] = 0
                 # apply masks to img_segment
                 img_segment[:,:overlap] *= mask_left 
-                print(mask_top.shape)
                 img_segment[:overlap, :] *= mask_top
                 flipped_mask_left = mask_left + (mask_left != 1) - (mask_left == 1)
                 flipped_mask_top = mask_top + (mask_top != 1) - (mask_top == 1) 
@@ -160,7 +157,7 @@ def quilt(block_size: int, texture_path: str, scale: float):
         if remainingY <= block_size:
             break # make sure to break if we need to fill a smaller-than-block sized portion at the end
     
-    io.imshow(quilted_img)
+    imshow(np.uint8(quilted_img))
     plt.show()
     return quilted_img
 
