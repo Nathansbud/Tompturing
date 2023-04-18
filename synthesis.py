@@ -1,6 +1,6 @@
 from skimage.io import imread
 import numpy as np
-from typing import List
+from typing import List, Tuple
 import math
 
 def get_texture_blocks(texture: np.ndarray, block_size: int) -> List[np.ndarray]:
@@ -14,7 +14,7 @@ def get_random_block(blocks: List[np.ndarray]) -> np.ndarray:
     index = np.random.randint(len(blocks))
     return blocks[index]
 
-def find_good_block(img_segment: np.ndarray, blocks: List[np.ndarray]) -> np.ndarray:
+def find_good_block(img_segment: np.ndarray, blocks: List[np.ndarray]) -> Tuple[np.ndarray, np.ndarray]:
     """Returns a random block from the input texture which fits the image segment and satisfies the overlap constraints"""
     h, w, c = img_segment.shape
     downscaled_blocks = [np.copy(block)[:h, :w, :c] for block in blocks] # Scale down blocks to img_segment size
@@ -30,7 +30,8 @@ def find_good_block(img_segment: np.ndarray, blocks: List[np.ndarray]) -> np.nda
     for i, block in enumerate(downscaled_blocks):
         if l2_norms[i] <= best_norm + tolerance:
             good_blocks.append(block)
-    return get_random_block(good_blocks)
+    selected_block =  get_random_block(good_blocks)
+    return selected_block, np.square(selected_block - img_segment) * (img_segment >= 0) 
 
 
 
