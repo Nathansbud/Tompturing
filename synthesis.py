@@ -142,15 +142,15 @@ def quilt(block_size: int, texture_path: str, scale: float):
                 # previously empty (-100) image segment becomes 0
                 img_segment[overlap:, overlap:] = 0
                 # apply masks to img_segment
-                img_segment[:,:overlap] *= mask_left 
-                img_segment[:overlap, :] *= mask_top
-                flipped_mask_left = mask_left + (mask_left != 1) - (mask_left == 1)
-                flipped_mask_top = mask_top + (mask_top != 1) - (mask_top == 1) 
+                total_mask = np.zeros_like(img_segment)
+                total_mask[:, :overlap] += mask_left
+                total_mask[:overlap, :] += mask_top
+                total_mask[total_mask > 1] = 1
+                img_segment *= total_mask
+                total_mask_flipped = total_mask + (total_mask != 1) - (total_mask == 1)
                 ragged_block = np.copy(selected_block)
-                ragged_block[:,:overlap] *= flipped_mask_left# .astype(np.float64)
-                ragged_block[:overlap,:] *= flipped_mask_top# .astype(np.float64)
+                ragged_block *= total_mask_flipped.astype(np.uint8)# .astype(np.float64)
                 img_segment += ragged_block
-
 
             if remainingX <= block_size:
                 break # make sure to break if we need to fill a smaller-than-block sized portion at the end
