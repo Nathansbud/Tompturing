@@ -10,7 +10,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--transfer", default=None, help="Image to transfer texture to")
 
     parser.add_argument("-b", "--block_size", metavar="n", nargs=1, default=16, type=int, help="Block size (n x n)")
-    parser.add_argument("-s", "--scale", default=2.0, help="Scaling factor to apply while quilting")
+    parser.add_argument("-s", "--scale", default=2.0, nargs=1, type=float, help="Scaling factor to apply while quilting")
 
     # we might want user parameters of error and error tolerance
     
