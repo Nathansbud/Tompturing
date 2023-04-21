@@ -115,7 +115,7 @@ def quilt(block_size: int, texture_path: str, scale: float):
                 # block to the left of the path becomes 0:
                 flipped_mask = mask + (mask != 1) - (mask == 1)
                 ragged_block = np.copy(selected_block)
-                ragged_block[:,:overlap] *= flipped_mask# .astype(np.float64)
+                ragged_block[:,:overlap] *= flipped_mask
                 img_segment += ragged_block
 
                 # pass copy into min_err_boundary_cut
@@ -130,7 +130,7 @@ def quilt(block_size: int, texture_path: str, scale: float):
                 # block above path becomes 0:
                 flipped_mask = mask + (mask != 1) - (mask == 1)
                 ragged_block = np.copy(selected_block)
-                ragged_block[:overlap,:] *= flipped_mask# .astype(np.float64)
+                ragged_block[:overlap,:] *= flipped_mask
                 img_segment += ragged_block
             else: # overlap on top and left
                 overlap_error_left = overlap_error[:, :overlap]
@@ -149,7 +149,7 @@ def quilt(block_size: int, texture_path: str, scale: float):
                 img_segment *= total_mask
                 total_mask_flipped = total_mask + (total_mask != 1) - (total_mask == 1)
                 ragged_block = np.copy(selected_block)
-                ragged_block *= total_mask_flipped.astype(np.uint8)# .astype(np.float64)
+                ragged_block *= total_mask_flipped.astype(np.uint8)
                 img_segment += ragged_block
 
             if remainingX <= block_size:
