@@ -42,10 +42,10 @@ def find_good_block(
     for block in downscaled_blocks:
         # multiply with mask to only calculate error for overlapping part:
         l2_norm = 0
-        if not (top_left and transfer_segment):
+        if not (top_left and (transfer_segment is not None)):
             l2_norm = np.sum(np.square(block - img_segment) * (img_segment >= 0)) 
-        
-        if transfer_segment:
+
+        if (transfer_segment is not None):
             # Compute (and add) the correspondance error    
             correspondence_error = get_correspondence_function(correspondence)(block, transfer_segment)    
             l2_norm *= alpha
@@ -124,12 +124,12 @@ def quilt(block_size: int, texture_path: str, transfer_path: Optional[str], corr
 
     if transfer_path:
         quilted_img[:block_size, :block_size, :] = find_good_block(
-            np.array([0]), 
+            np.zeros((1, 1, 3)), 
             texture_blocks, 
             transfer[:block_size, :block_size, :], 
             correspondence,
             True
-        )
+        )[0]
     else:
         quilted_img[:block_size, :block_size, :] = get_random_block(texture_blocks) # Place a random block on the top left
 

@@ -2,7 +2,7 @@ import argparse
 import os
 import sys
 
-from synthesis import quilt, quilt_and_transfer
+from synthesis import quilt
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=f"Tompturing: Quilting for Texture Synthesis & Transfer")
