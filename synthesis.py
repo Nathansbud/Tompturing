@@ -1,6 +1,7 @@
 from skimage.io import imread, imshow
+from skimage.color import rgb2lab
 import numpy as np
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 import math
 import matplotlib.pyplot as plt
 
@@ -15,14 +16,43 @@ def get_random_block(blocks: List[np.ndarray]) -> np.ndarray:
     index = np.random.randint(len(blocks))
     return blocks[index]
 
-def find_good_block(img_segment: np.ndarray, blocks: List[np.ndarray]) -> Tuple[np.ndarray, np.ndarray]:
+def get_luminance_error(im1: np.ndarray, im2: np.ndarray):
+    # im1 is the new block; im2 is from the image we're transferring onto
+    im1_intensities = rgb2lab(im1)[0] # L channel - intensity values
+    im2_intensities = rgb2lab(im2)[0]
+    return np.sum(np.square(im1_intensities - im2_intensities))
+
+def get_correspondence_function(key: str): 
+    if key == 'luminance': return get_luminance_error
+    elif not key:
+        raise Exception(f"{key} is not a valid correspondence function!")
+
+def find_good_block(
+    img_segment: np.ndarray, 
+    blocks: List[np.ndarray], 
+    transfer_segment: np.ndarray=None, 
+    correspondence: Optional[str]=None, 
+    top_left: bool=False, 
+    alpha: float=0.5
+) -> Tuple[np.ndarray, np.ndarray]:
     """Returns a random block from the input texture which fits the image segment and satisfies the overlap constraints"""
     h, w, c = img_segment.shape
     downscaled_blocks = [np.copy(block)[:h, :w, :c] for block in blocks] # Scale down blocks to img_segment size
     l2_norms = []
     for block in downscaled_blocks:
         # multiply with mask to only calculate error for overlapping part:
-        l2_norm = np.sum(np.square(block - img_segment) * (img_segment >= 0))
+        l2_norm = 0
+        if not (top_left and transfer_segment):
+            l2_norm = np.sum(np.square(block - img_segment) * (img_segment >= 0)) 
+        
+        if transfer_segment:
+            # Compute (and add) the correspondance error    
+            correspondence_error = get_correspondence_function(correspondence)(block, transfer_segment)    
+            l2_norm *= alpha
+            l2_norm += (1 - alpha) * correspondence_error
+            # correspondence_error_function should return a single error value
+            pass
+
         l2_norms.append(l2_norm)
     
     best_norm = min(l2_norms)
@@ -69,9 +99,10 @@ def min_err_boundary_cut(overlap_img: np.ndarray) -> np.ndarray:
     return mask.astype(np.uint8)
 
 
-
-def quilt(block_size: int, texture_path: str, scale: float):
+def quilt(block_size: int, texture_path: str, transfer_path: Optional[str], correspondence: str, scale: float):
     texture = imread(texture_path)
+    transfer = imread(transfer_path) if transfer_path else None
+    
     th, tw, tc = texture.shape
 
     # tile must be within the bounds of the texture
@@ -82,13 +113,25 @@ def quilt(block_size: int, texture_path: str, scale: float):
     print(texture.shape)
     
     texture = np.array(texture)
+    transfer = np.array(transfer)
     texture_blocks = get_texture_blocks(texture, block_size)
-    
-    outh, outw, outc = int(th * scale), int(tw * scale), tc # Dimensions of output texture
+    if transfer_path:
+        outh, outw, outc = transfer.shape
+    else:
+        outh, outw, outc = int(th * scale), int(tw * scale), tc # Dimensions of output texture
     quilted_img = -100 * np.ones((outh, outw, outc)) # Placeholder array for quilted texture
     ## NOTE: I filled it with negative values instead of zeros to help in creating masks for the L2 norm calculations in find_good_block
 
-    quilted_img[:block_size, :block_size, :] = get_random_block(texture_blocks) # Place a random block on the top left
+    if transfer_path:
+        quilted_img[:block_size, :block_size, :] = find_good_block(
+            np.array([0]), 
+            texture_blocks, 
+            transfer[:block_size, :block_size, :], 
+            correspondence,
+            True
+        )
+    else:
+        quilted_img[:block_size, :block_size, :] = get_random_block(texture_blocks) # Place a random block on the top left
 
     overlap = math.ceil(block_size / 6) # The paper said the overlap was 1/6th of the block size
     # Going through the image to be synthesized in raster scan order
@@ -101,9 +144,10 @@ def quilt(block_size: int, texture_path: str, scale: float):
             # remainingY = outh - row
             remainingX = outw - col
             img_segment = quilted_img[row: row + min(block_size, remainingY), col: col + min(block_size, remainingX)]
-            selected_block, overlap_error = find_good_block(img_segment, texture_blocks)
+            transfer_segment = transfer[row: row + min(block_size, remainingY), col: col + min(block_size, remainingX)] if transfer_path else None
+            selected_block, overlap_error = find_good_block(img_segment, texture_blocks, transfer_segment, correspondence)
 
-            # TODO: min_err_boundary_cut (seamcarve) and then mould selected_block based on that seam and place into quilted_img
+            # min_err_boundary_cut (seamcarve) and then mould selected_block based on that seam and place into quilted_img
             if row == 0: # overlap only on the left
                 overlap_error = overlap_error[:, :overlap]
                 mask = min_err_boundary_cut(overlap_error)
@@ -117,7 +161,6 @@ def quilt(block_size: int, texture_path: str, scale: float):
                 ragged_block = np.copy(selected_block)
                 ragged_block[:,:overlap] *= flipped_mask
                 img_segment += ragged_block
-
                 # pass copy into min_err_boundary_cut
             elif col == 0: # overlap only on top
                 overlap_error = overlap_error[:overlap, :]
@@ -160,14 +203,4 @@ def quilt(block_size: int, texture_path: str, scale: float):
     imshow(np.uint8(quilted_img))
     plt.show()
     return quilted_img
-
-def quilt_and_transfer(block_size: int, texture_path: str, transfer_path: str, scale: float):
-    quilted = quilt(block_size, texture_path)
-    transfer = imread(transfer_path)
-    print(transfer.shape)
-
-    #TODO: The paper :)
-
-    return transfer
-
     

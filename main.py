@@ -11,8 +11,8 @@ if __name__ == "__main__":
 
     parser.add_argument("-b", "--block_size", metavar="n", nargs=1, default=16, type=int, help="Block size (n x n)")
     parser.add_argument("-s", "--scale", default=2.0, nargs=1, type=float, help="Scaling factor to apply while quilting")
-
-    # we might want user parameters of error and error tolerance
+    parser.add_argument("-c", "--correspondence", choices=["luminance", "intensity"], help="Correspondence function to use")
+    parser.add_argument("-a", "--alpha", default=1.0, help="Alpha to use for correspondence blending")
     
     args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
     texture, transfer = args.texture, args.transfer
@@ -27,12 +27,12 @@ if __name__ == "__main__":
     
     if texture and transfer:
         if os.path.isfile(texture) and os.path.isfile(transfer):
-            quilt_and_transfer(args.block_size[0], texture, transfer, args.scale)
+            quilt(args.block_size[0], texture, transfer, args.correspondence, args.scale)
         else:
             print("Provided texture and transfer images must be valid filepaths!")
     elif texture:
         if os.path.isfile(texture): 
-            quilt(args.block_size[0], texture, args.scale)
+            quilt(args.block_size[0], texture, None, args.correspondence, args.scale)
         else: 
             print("Provided texture must be a valid filepath!")
     elif transfer:
