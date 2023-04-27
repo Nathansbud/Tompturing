@@ -7,22 +7,26 @@ import matplotlib.pyplot as plt
 
 def get_texture_blocks(texture: np.ndarray, block_size: int) -> List[np.ndarray]:
     """Returns a list of blocks (of size block_size) from the input texture"""
+    print("get texture blocks")
     th, tw, tc = texture.shape
-    texture_blocks = [texture[i:i+block_size, j:j+block_size] for j in range(tw - block_size) for i in range(th - block_size)]
+    texture_blocks = [texture[i:i+block_size, j:j+block_size] for j in range(0, tw - block_size, 3) for i in range(0, th - block_size, 3)]
     return texture_blocks
 
 def get_random_block(blocks: List[np.ndarray]) -> np.ndarray:
     """Returns a random block out of the provided list of blocks"""
+    print("get random block")
     index = np.random.randint(len(blocks))
     return blocks[index]
 
 def get_luminance_error(im1: np.ndarray, im2: np.ndarray):
+    # print("get luminance error")
     # im1 is the new block; im2 is from the image we're transferring onto
     im1_intensities = rgb2lab(im1)[0] # L channel - intensity values
     im2_intensities = rgb2lab(im2)[0]
     return np.sum(np.square(im1_intensities - im2_intensities))
 
 def get_correspondence_function(key: str): 
+    # print("get correspondence function")
     if key == 'luminance': return get_luminance_error
     elif not key:
         raise Exception(f"{key} is not a valid correspondence function!")
@@ -33,13 +37,21 @@ def find_good_block(
     transfer_segment: np.ndarray=None, 
     correspondence: Optional[str]=None, 
     top_left: bool=False, 
-    alpha: float=0.5
+    alpha: float=0.3 # 0.5
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Returns a random block from the input texture which fits the image segment and satisfies the overlap constraints"""
+    print("find good block")
     h, w, c = img_segment.shape
-    downscaled_blocks = [np.copy(block)[:h, :w, :c] for block in blocks] # Scale down blocks to img_segment size
+    if (top_left and (transfer_segment is not None)):
+        downscaled_blocks =  blocks
+    else:
+        downscaled_blocks = [np.copy(block)[:h, :w, :c] for block in blocks] # Scale down blocks to img_segment size
     l2_norms = []
+    print("downscaled blocks len:", len(downscaled_blocks))
+    it = 0
     for block in downscaled_blocks:
+        print(it)
+        it += 1
         # multiply with mask to only calculate error for overlapping part:
         l2_norm = 0
         if not (top_left and (transfer_segment is not None)):
@@ -65,6 +77,7 @@ def find_good_block(
     return selected_block, np.sum(np.square(selected_block - img_segment) * (img_segment >= 0), axis=-1)
 
 def min_err_boundary_cut(overlap_img: np.ndarray) -> np.ndarray:
+    print("min err boundary cut")
     # Perform seamcarve
     height, width = overlap_img.shape
     for row in range(1, height):
@@ -111,9 +124,12 @@ def quilt(block_size: int, texture_path: str, transfer_path: Optional[str], corr
         exit(1)
     
     print(texture.shape)
+    if (transfer is not None):
+        print(transfer.shape)
     
     texture = np.array(texture)
-    transfer = np.array(transfer)
+    if (transfer is not None):
+        transfer = np.array(transfer)
     texture_blocks = get_texture_blocks(texture, block_size)
     if transfer_path:
         outh, outw, outc = transfer.shape
@@ -201,6 +217,8 @@ def quilt(block_size: int, texture_path: str, transfer_path: Optional[str], corr
             break # make sure to break if we need to fill a smaller-than-block sized portion at the end
     
     imshow(np.uint8(quilted_img))
+    plt.savefig('result.png')
     plt.show()
+    # plt.savefig('result.png')
     return quilted_img
     
