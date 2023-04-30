@@ -4,6 +4,7 @@ import numpy as np
 from typing import List, Tuple, Optional
 import math
 import matplotlib.pyplot as plt
+from transfer import iterative_transfer
 
 def get_texture_blocks(texture: np.ndarray, block_size: int) -> List[np.ndarray]:
     """Returns a list of blocks (of size block_size) from the input texture"""
@@ -115,6 +116,9 @@ def min_err_boundary_cut(overlap_img: np.ndarray) -> np.ndarray:
 def quilt(block_size: int, texture_path: str, transfer_path: Optional[str], correspondence: str, scale: float):
     texture = imread(texture_path)[:,:,:3] # NOTE: removing alpha channel if it exists
     transfer = imread(transfer_path)[:,:,:3] if transfer_path else None
+    if transfer_path:
+        iterative_transfer(block_size, texture_path, transfer_path, correspondence)
+        return
     
     th, tw, tc = texture.shape
 
