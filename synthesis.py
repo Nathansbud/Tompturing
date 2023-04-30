@@ -113,8 +113,8 @@ def min_err_boundary_cut(overlap_img: np.ndarray) -> np.ndarray:
 
 
 def quilt(block_size: int, texture_path: str, transfer_path: Optional[str], correspondence: str, scale: float):
-    texture = imread(texture_path)
-    transfer = imread(transfer_path) if transfer_path else None
+    texture = imread(texture_path)[:,:,:3] # NOTE: removing alpha channel if it exists
+    transfer = imread(transfer_path)[:,:,:3] if transfer_path else None
     
     th, tw, tc = texture.shape
 
