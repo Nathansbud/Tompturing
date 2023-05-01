@@ -17,7 +17,7 @@ def get_random_block(blocks: List[np.ndarray]) -> np.ndarray:
     index = np.random.randint(len(blocks))
     return blocks[index]
 
-def find_good_block(img_segment: np.ndarray, blocks: List[np.ndarray], overlap: int, row: int, col: int) -> Tuple[np.ndarray, np.ndarray]:
+def find_good_block(img_segment: np.ndarray, blocks: List[np.ndarray]) -> Tuple[np.ndarray, np.ndarray]:
     """Returns a random block from the input texture which fits the image segment and satisfies the overlap constraints"""
     print("find good block")
     h, w, c = img_segment.shape
@@ -109,7 +109,7 @@ def quilt(block_size: int, texture_path: str, scale: float):
                 continue
             remainingX = outw - col
             img_segment = quilted_img[row: row + min(block_size, remainingY), col: col + min(block_size, remainingX)]
-            selected_block, overlap_error = find_good_block(img_segment, texture_blocks, overlap, row, col)
+            selected_block, overlap_error = find_good_block(img_segment, texture_blocks)
 
             # min_err_boundary_cut (seamcarve) and then mould selected_block based on that seam and place into quilted_img
             if row == 0: # overlap only on the left
