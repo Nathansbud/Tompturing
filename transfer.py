@@ -1,5 +1,5 @@
 from skimage.io import imread, imshow
-from skimage.color import rgb2lab, rgb2gray
+from skimage.color import rgb2gray
 import matplotlib.pyplot as plt
 import numpy as np
 import math
@@ -10,7 +10,6 @@ from typing import List
 texture_blocks = None
 
 def get_intensity_map(img: np.ndarray):
-    # return rgb2lab(img)[0] # return L channel values
     return rgb2gray(img)
 
 def get_correspondence_function(key: str):
@@ -39,35 +38,28 @@ def get_top_left_block(block_size: int, transfer_img_section: np.ndarray, corres
         block_correspondence_map = correspondence_function(block)
         l2_norm = np.sum(np.square(block_correspondence_map - transfer_correspondence_map))
         l2_norms.append(l2_norm)
-    # best_norm = min(l2_norms)
-    # tolerance = 0.1 * best_norm
-    # good_blocks = []
-    # for i, block in enumerate(texture_blocks):
-    #     if l2_norms[i] <= best_norm + tolerance:
-    #         good_blocks.append(block)
-    # return get_random_block(good_blocks)
     best_norm_index = np.argmin(l2_norms)
     return texture_blocks[best_norm_index]
 
 def find_good_block(transfer_result_segment: np.ndarray, transfer_img_segment: np.ndarray, correspondence: str, alpha: float, iter_num: int, overlap: int, row: int, col: int):
     print("find good block")
-    # transfer_result_segment :: img_segment
-    # transfer_img_segment :: transfer_segment
+    # NOTE: transfer_result_segment represents the portion of the transfer result that is currently
+    # being constructed, for which we are trying to find a good block. On the other hand,
+    # transfer_img_segment represents the corresponding portion of the transfer (target) image
+    # provided by the user.
     h, w, c = transfer_result_segment.shape
     downscaled_blocks = [np.copy(block)[:h, :w, :c] for block in texture_blocks]
     correspondence_function = get_correspondence_function(correspondence)
     transfer_img_segment_correspondence_map = correspondence_function(transfer_img_segment)
     errors = []
     for block in downscaled_blocks:
-        # overlap_error = np.sum(np.square((block - transfer_result_segment) * (transfer_result_segment > 0)))
         overlap_error = 0
         if row > 0: # there is overlap on top
             overlap_error += np.sum(np.square(block[:overlap,:,:] - transfer_result_segment[:overlap,:,:]))
         if col > 0: # there is overlap on the left
             overlap_error += np.sum(np.square(block[:,:overlap,:] - transfer_result_segment[:,:overlap,:]))
-        if row > 0 and col > 0:
+        if row > 0 and col > 0: # make sure not to double count the top-left corner's overlap
             overlap_error -= np.sum(np.square(block[:overlap,:overlap,:] - transfer_result_segment[:overlap,:overlap,:]))
-        # overlap_error = np.sum(np.square(block[:overlap, :overlap, :] - transfer_result_segment[:overlap, :overlap, :]))
         block_correspondence_map = correspondence_function(block)
         correspondence_error = np.sum(np.square(block_correspondence_map - transfer_img_segment_correspondence_map))
         if iter_num > 0:
@@ -77,18 +69,14 @@ def find_good_block(transfer_result_segment: np.ndarray, transfer_img_segment: n
             error = (alpha * overlap_error) + ((1 - alpha) * correspondence_error)
         errors.append(error)
 
-    # best_error = min(errors)
-    # tolerance = 0.1 * best_error
-    # good_blocks = []
-    # for i, block in enumerate(downscaled_blocks):
-    #     if errors[i] <= best_error + tolerance:
-    #         good_blocks.append(block)
-    # selected_block = get_random_block(good_blocks)
+    # NOTE: unlike synthesis, we don't find one of the blocks that fits within a threshold; just
+    # return the best one (seems to give us better results)
     best_error_index = np.argmin(errors)
     selected_block = downscaled_blocks[best_error_index]
 
     error_map = np.sum(np.square(selected_block - transfer_result_segment) * (transfer_result_segment > 0), axis=-1)
     return selected_block, error_map
+
 
 def min_err_boundary_cut(overlap_img: np.ndarray) -> np.ndarray:
     print("min err boundary cut")
@@ -134,7 +122,6 @@ def transfer(block_size: int, texture_img: np.ndarray, transfer_img: np.ndarray,
         print(f"Block size must be between 0 and texture min dimension; {block_size} not within [0, {min(th, tw)}]")
         exit(1)
     
-    # transfer_result = -100 * np.ones_like(texture_img)
     transfer_result = prev_result
     get_texture_blocks(texture_img, block_size)
 
@@ -152,31 +139,17 @@ def transfer(block_size: int, texture_img: np.ndarray, transfer_img: np.ndarray,
             transfer_result_segment = transfer_result[row: row + min(block_size, remainingY), col: col + min(block_size, remainingX)]
             transfer_img_segment = transfer_img[row: row + min(block_size, remainingY), col: col + min(block_size, remainingX)]
             selected_block, overlap_error = find_good_block(transfer_result_segment, transfer_img_segment, correspondence, alpha, iter_num, overlap, row, col)
-            # print(selected_block)
-            # imshow(selected_block)
-            # plt.show()
 
             if row == 0: # overlap only on the left
-                # print("segment step 0")
-                # imshow(np.uint8(transfer_result_segment))
-                # plt.show()
                 overlap_error = overlap_error[:, :overlap]
                 mask = min_err_boundary_cut(overlap_error)
-                # print("mask")
-                # print(mask)
                 mask = np.repeat(mask[:,:,np.newaxis], 3, axis=2)
                 transfer_result_segment[:,overlap:] = 0
                 transfer_result_segment[:,:overlap] *= mask
-                # print("segment step 1")
-                # imshow(np.uint8(transfer_result_segment))
-                # plt.show()
                 flipped_mask = mask + (mask != 1) - (mask == 1)
                 ragged_block = np.copy(selected_block)
                 ragged_block[:,:overlap] *= flipped_mask
                 transfer_result_segment += ragged_block
-                # print("segment step 3")
-                # imshow(np.uint8(transfer_result_segment))
-                # plt.show()
             elif col == 0: # overlap only on top
                 overlap_error = overlap_error[:overlap,:]
                 mask = min_err_boundary_cut(overlap_error.T).T
@@ -211,9 +184,6 @@ def transfer(block_size: int, texture_img: np.ndarray, transfer_img: np.ndarray,
                 break
         if remainingY <= block_size:
             break
-    # print("transfer result:")
-    # print(transfer_result)
-    # imshow(np.uint8(transfer_result))
     imshow(transfer_result)
     plt.show()
     return transfer_result
@@ -232,14 +202,11 @@ def iterative_transfer(block_size: int, texture_path: str, transfer_path: str, c
     for iter_num in range(num_iters):
         print(f"Iteration: {iter_num} of {num_iters-1}")
         ALPHA = (0.8 * iter_num / (num_iters-1)) + 0.1
-        # block_size = int(block_size // (1 + 0.2 * iter_num))
-        # block_size = int(block_size * (0.67 ** iter_num))
         if iter_num > 0:
             block_size = int(block_size * 0.67)
         print(f"block_size: {block_size}")
         transfer_result = transfer(block_size, texture_img, transfer_img, ALPHA, iter_num, correspondence, transfer_result)
 
-    # imshow(np.uint8(transfer_result))
     imshow(transfer_result)
     plt.savefig('transfer_result.png')
     plt.show()
