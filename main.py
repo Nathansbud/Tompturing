@@ -3,6 +3,7 @@ import os
 import sys
 
 from synthesis import quilt
+from transfer import iterative_transfer
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=f"Tompturing: Quilting for Texture Synthesis & Transfer")
@@ -27,12 +28,12 @@ if __name__ == "__main__":
     
     if texture and transfer:
         if os.path.isfile(texture) and os.path.isfile(transfer):
-            quilt(args.block_size[0], texture, transfer, args.correspondence, args.scale)
+            iterative_transfer(args.block_size[0], texture, transfer, args.correspondence)
         else:
             print("Provided texture and transfer images must be valid filepaths!")
     elif texture:
         if os.path.isfile(texture): 
-            quilt(args.block_size[0], texture, None, args.correspondence, args.scale)
+            quilt(args.block_size[0], texture, args.scale)
         else: 
             print("Provided texture must be a valid filepath!")
     elif transfer:
