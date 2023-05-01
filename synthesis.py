@@ -25,13 +25,14 @@ def find_good_block(img_segment: np.ndarray, blocks: List[np.ndarray], overlap: 
     l2_norms = []
     print("downscaled blocks len:", len(downscaled_blocks))
     for block in downscaled_blocks:
-        l2_norm = 0
-        if row > 0: # there is overlap on top
-            l2_norm += np.sum(np.square(block[:overlap,:,:] - img_segment[:overlap,:,:]))
-        if col > 0: # there is overlap on the left
-            l2_norm += np.sum(np.square(block[:,:overlap,:] - img_segment[:,:overlap,:]))
-        if row > 0 and col > 0:
-            l2_norm -= np.sum(np.square(block[:overlap,:overlap,:] - img_segment[:overlap,:overlap,:]))
+        # l2_norm = 0
+        l2_norm = np.sum(np.square(block - img_segment) * (img_segment >= 0)) 
+        # if row > 0: # there is overlap on top
+        #     l2_norm += np.sum(np.square(block[:overlap,:,:] - img_segment[:overlap,:,:]))
+        # if col > 0: # there is overlap on the left
+        #     l2_norm += np.sum(np.square(block[:,:overlap,:] - img_segment[:,:overlap,:]))
+        # if row > 0 and col > 0:
+        #     l2_norm -= np.sum(np.square(block[:overlap,:overlap,:] - img_segment[:overlap,:overlap,:]))
         l2_norms.append(l2_norm)
     
     best_norm = min(l2_norms)
