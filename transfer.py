@@ -12,8 +12,12 @@ texture_blocks = None
 def get_intensity_map(img: np.ndarray):
     return rgb2gray(img)
 
+def get_orientation_angle_map(img: np.ndarray):
+    return np.gradient(img)
+
 def get_correspondence_function(key: str):
     if key == "intensity": return get_intensity_map
+    elif key == "orientation_angles": return get_orientation_angle_map
     elif not key:
         raise Exception(f"{key} is not a valid correspondence function!")
 
