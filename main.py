@@ -6,6 +6,10 @@ from synthesis import quilt
 from transfer import iterative_transfer
 
 if __name__ == "__main__":
+    """
+    Sets up the argparse so that the code for texture synthesis/transfer can be run with command 
+    line arguments
+    """
     parser = argparse.ArgumentParser(description=f"Tompturing: Quilting for Texture Synthesis & Transfer")
     parser.add_argument("-t", "--texture", default=None, help="Texture to quilt")
     parser.add_argument("-d", "--transfer", default=None, help="Image to transfer texture to")
@@ -13,7 +17,7 @@ if __name__ == "__main__":
     parser.add_argument("-b", "--block_size", metavar="n", nargs=1, default=16, type=int, help="Block size (n x n)")
     parser.add_argument("-s", "--scale", default=2.0, nargs=1, type=float, help="Scaling factor to apply while quilting")
     parser.add_argument("-c", "--correspondence", choices=["intensity", "orientation_angles"], help="Correspondence function to use")
-    parser.add_argument("-a", "--alpha", default=1.0, help="Alpha to use for correspondence blending")
+    # parser.add_argument("-a", "--alpha", default=1.0, help="Alpha to use for correspondence blending")
     
     args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
     texture, transfer = args.texture, args.transfer

@@ -23,16 +23,9 @@ def find_good_block(img_segment: np.ndarray, blocks: List[np.ndarray]) -> Tuple[
     h, w, c = img_segment.shape
     downscaled_blocks = [np.copy(block)[:h, :w, :c] for block in blocks] # Scale down blocks to img_segment size
     l2_norms = []
-    print("downscaled blocks len:", len(downscaled_blocks))
+    # print("downscaled blocks len:", len(downscaled_blocks))
     for block in downscaled_blocks:
-        # l2_norm = 0
         l2_norm = np.sum(np.square(block - img_segment) * (img_segment >= 0)) 
-        # if row > 0: # there is overlap on top
-        #     l2_norm += np.sum(np.square(block[:overlap,:,:] - img_segment[:overlap,:,:]))
-        # if col > 0: # there is overlap on the left
-        #     l2_norm += np.sum(np.square(block[:,:overlap,:] - img_segment[:,:overlap,:]))
-        # if row > 0 and col > 0:
-        #     l2_norm -= np.sum(np.square(block[:overlap,:overlap,:] - img_segment[:overlap,:overlap,:]))
         l2_norms.append(l2_norm)
     
     best_norm = min(l2_norms)
@@ -45,8 +38,10 @@ def find_good_block(img_segment: np.ndarray, blocks: List[np.ndarray]) -> Tuple[
     return selected_block, np.sum(np.square(selected_block - img_segment) * (img_segment >= 0), axis=-1)
 
 def min_err_boundary_cut(overlap_img: np.ndarray) -> np.ndarray:
+    """Identifies the minimum error cut across the provided overlap segment. Then constructs a
+    path for that cut and generates (and returns) a boolean mask which can be used to """
     print("min err boundary cut")
-    # Perform seamcarve
+    # Find minimum error cut
     height, width = overlap_img.shape
     for row in range(1, height):
         for col in range(width):
@@ -81,6 +76,8 @@ def min_err_boundary_cut(overlap_img: np.ndarray) -> np.ndarray:
 
 
 def quilt(block_size: int, texture_path: str, scale: float):
+    """Synthesizes a larger version of the texture (quilts the input texture). Uses the provided block size and makes a resulted quilt which is larger than the input texture by the provided
+    scale factor"""
     texture = imread(texture_path)[:,:,:3] # NOTE: removing alpha channel if it exists
     
     th, tw, tc = texture.shape
@@ -95,11 +92,11 @@ def quilt(block_size: int, texture_path: str, scale: float):
     texture_blocks = get_texture_blocks(texture, block_size)
     outh, outw, outc = int(th * scale), int(tw * scale), tc # Dimensions of output texture
     quilted_img = -100 * np.ones((outh, outw, outc)) # Placeholder array for quilted texture
-    ## NOTE: I filled it with negative values instead of zeros to help in creating masks for the L2 norm calculations in find_good_block
+    ## NOTE: Filled with negative values instead of zeros to help in creating masks for the L2 norm calculations in find_good_block
 
     quilted_img[:block_size, :block_size, :] = get_random_block(texture_blocks) # Place a random block on the top left
 
-    overlap = math.ceil(block_size / 6) # The paper said the overlap was 1/6th of the block size
+    overlap = math.ceil(block_size / 6)
     # Going through the image to be synthesized in raster scan order
     for row in range(0, outh, block_size - overlap):
         remainingY = outh - row
@@ -111,7 +108,7 @@ def quilt(block_size: int, texture_path: str, scale: float):
             img_segment = quilted_img[row: row + min(block_size, remainingY), col: col + min(block_size, remainingX)]
             selected_block, overlap_error = find_good_block(img_segment, texture_blocks)
 
-            # min_err_boundary_cut (seamcarve) and then mould selected_block based on that seam and place into quilted_img
+            # min_err_boundary_cut and then mould selected_block based on that seam and place into quilted_img
             if row == 0: # overlap only on the left
                 overlap_error = overlap_error[:, :overlap]
                 mask = min_err_boundary_cut(overlap_error)

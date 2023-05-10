@@ -10,29 +10,36 @@ from typing import List
 texture_blocks = None
 
 def get_intensity_map(img: np.ndarray):
+    """Returns an intensity map for the provided image"""
     return rgb2gray(img)
 
 def get_orientation_angle_map(img: np.ndarray):
+    """Returns a map of orientation angles (gradients) for the provided image"""
     return np.gradient(img)
 
 def get_correspondence_function(key: str):
+    """Returns the function which can create a correspondence map based on the desired type of
+    correspondence (specified in the key)"""
     if key == "intensity": return get_intensity_map
     elif key == "orientation_angles": return get_orientation_angle_map
     elif not key:
         raise Exception(f"{key} is not a valid correspondence function!")
 
 def get_texture_blocks(texture: np.ndarray, block_size: int):
+    """Generates a list of blocks (of size block_size) from the input texture and stores them in texture_blocks"""
     print("get texture blocks")
     th, tw, tc = texture.shape
     global texture_blocks
     texture_blocks = [texture[i:i+block_size, j:j+block_size,:] for j in range(tw - block_size) for i in range(th - block_size)]
-    print(len(texture_blocks))
+    # print(len(texture_blocks))
 
 def get_random_block(blocks: List[np.ndarray]):
+    """Returns a random block out of the provided list of blocks"""
     index = np.random.randint(len(blocks))
     return blocks[index]
 
 def get_top_left_block(block_size: int, transfer_img_section: np.ndarray, correspondence: str):
+    """Identifies the texture block to be used at the top-left location of the constructed result"""
     print("get top left block")
     correspondence_function = get_correspondence_function(correspondence)
 
@@ -46,6 +53,9 @@ def get_top_left_block(block_size: int, transfer_img_section: np.ndarray, corres
     return texture_blocks[best_norm_index]
 
 def find_good_block(transfer_result_segment: np.ndarray, transfer_img_segment: np.ndarray, correspondence: str, alpha: float, iter_num: int, overlap: int, row: int, col: int):
+    """Finds the best block to place at the specified location of the constructed result based on
+    the constraints defined with the overlap error, correspondence error, and overlay error.
+    Returns this block along with an error map for the overlapping section."""
     print("find good block")
     # NOTE: transfer_result_segment represents the portion of the transfer result that is currently
     # being constructed, for which we are trying to find a good block. On the other hand,
@@ -73,8 +83,6 @@ def find_good_block(transfer_result_segment: np.ndarray, transfer_img_segment: n
             error = (alpha * overlap_error) + ((1 - alpha) * correspondence_error)
         errors.append(error)
 
-    # NOTE: unlike synthesis, we don't find one of the blocks that fits within a threshold; just
-    # return the best one (seems to give us better results)
     best_error_index = np.argmin(errors)
     selected_block = downscaled_blocks[best_error_index]
 
@@ -83,8 +91,10 @@ def find_good_block(transfer_result_segment: np.ndarray, transfer_img_segment: n
 
 
 def min_err_boundary_cut(overlap_img: np.ndarray) -> np.ndarray:
+    """Identifies the minimum error cut across the provided overlap segment. Then constructs a
+    path for that cut and generates (and returns) a boolean mask which can be used to """
     print("min err boundary cut")
-    # Perform seamcarve
+    # Find minimum error boundary cut
     height, width = overlap_img.shape
     for row in range(1, height):
         for col in range(width):
@@ -119,6 +129,7 @@ def min_err_boundary_cut(overlap_img: np.ndarray) -> np.ndarray:
 
 
 def transfer(block_size: int, texture_img: np.ndarray, transfer_img: np.ndarray, alpha: float, iter_num: int, correspondence: str, prev_result: np.ndarray):
+    """Performs one iteration of the transfer process"""
     th, tw, tc = texture_img.shape
     outh, outw, outc = transfer_img.shape
 
@@ -194,6 +205,7 @@ def transfer(block_size: int, texture_img: np.ndarray, transfer_img: np.ndarray,
 
 
 def iterative_transfer(block_size: int, texture_path: str, transfer_path: str, correspondence: str, num_iters: int=2):
+    """Iteratively performs the texture transfer process"""
     # NOTE: removing alpha channel (if present)
     texture_img = imread(texture_path)[:,:,:3] / 255.0
     transfer_img = imread(transfer_path)[:,:,:3] / 255.0 if transfer_path else None
@@ -215,4 +227,3 @@ def iterative_transfer(block_size: int, texture_path: str, transfer_path: str, c
     plt.savefig('transfer_result.png')
     plt.show()
     return transfer_result
-
