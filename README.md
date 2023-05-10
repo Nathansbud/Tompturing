@@ -33,7 +33,7 @@ python main.py -t <path_to_input_texture> -d <path_to_target_image> -b 20
 
 ## Report
 
-You can view our final report (which also contains many sample results) [here](https://drive.google.com/file/d/1wgyOiR6VMBXk40bdzidyG8-Dhfxml5zR/view?usp=sharing).
+Check out our [final report](https://drive.google.com/file/d/1wgyOiR6VMBXk40bdzidyG8-Dhfxml5zR/view?usp=sharing) (which also contains many sample results)!
 
 ## Credits
 
